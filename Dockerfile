@@ -1,8 +1,7 @@
 FROM ubuntu:22.04
 
 # Install required tools
-RUN apt-get update -y
-RUN apt-get install -y build-essential libsdl1.2-dev zip unzip git texinfo automake libtool libtool-bin autoconf flex bison curl wget libgmp-dev
+RUN apt-get update -y && apt-get install -y build-essential libsdl1.2-dev zip unzip git texinfo automake libtool libtool-bin autoconf flex bison curl wget libgmp-dev && rm -rf /var/cache/apt/archives /var/lib/apt/lists
 
 RUN mkdir /tmp/rbdev-dl
 COPY dl/* /tmp/rbdev-dl/
