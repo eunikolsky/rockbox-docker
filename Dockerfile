@@ -4,6 +4,9 @@ FROM ubuntu:22.04
 RUN apt-get update -y
 RUN apt-get install -y build-essential libsdl1.2-dev zip unzip git texinfo automake libtool libtool-bin autoconf flex bison curl wget libgmp-dev
 
+RUN mkdir /tmp/rbdev-dl
+COPY dl/* /tmp/rbdev-dl/
+
 # Clone Rockbox
 WORKDIR /usr/src
 RUN git clone --depth=1 https://github.com/Rockbox/rockbox.git
