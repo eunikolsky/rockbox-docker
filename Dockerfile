@@ -18,8 +18,7 @@ WORKDIR /usr/src/rockbox/build
 #RUN sed -i 's@#define HAVE_DISK_STORAGE@#define HAVE_FLASH_STORAGE@g' ../firmware/export/config/ipodmini2g.h
 
 # Configure dev environment
-RUN ../tools/rockboxdev.sh --target=a
-RUN echo $PATH
+RUN ../tools/rockboxdev.sh --target=a --makeflags=-j
 RUN which arm-elf-eabi-gcc
 
 # FullZip for sansa clip+
