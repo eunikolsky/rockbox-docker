@@ -13,11 +13,17 @@ WORKDIR /usr/src/rockbox/build
 
 # Configure dev environment
 RUN ../tools/rockboxdev.sh --target=a --makeflags=-j
-RUN which arm-elf-eabi-gcc
+#RUN which arm-elf-eabi-gcc
 
 # FullZip for sansa clip+
-RUN ../tools/configure --target=62
+RUN PATH=/tmp/local/bin:$PATH ../tools/configure --target=62 --type=N
 RUN make -j && make fullzip
 #RUN mv rockbox-full.zip ipodmini1g-rockbox-full.zip
+
+#WORKDIR /usr/src
+#RUN git pull
+#WORKDIR /usr/src/rockbox/build
+##RUN ../tools/configure --target=62
+#RUN make -j && make fullzip
 
 WORKDIR /
