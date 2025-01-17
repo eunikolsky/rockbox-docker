@@ -1,0 +1,134 @@
+From e7fdac25786417a28c90e3b1d77b32ccf0939162 Mon Sep 17 00:00:00 2001
+From: Eugene <e@egeek.me>
+Date: Fri, 17 Jan 2025 17:42:46 +0200
+Subject: [PATCH] FS#11619 - Restore pitch and speed settings on resume
+
+This commit cherry-picks the latest [patch][] (from 2011-07-22 13:05) in
+the [FS#11619 task][task] onto the latest released rockbox version,
+3.15. The patch did not apply on that version, so I made the edits
+manually, and commit 0eb3209b071266772d4089e7f68a9f1ff8963999 in the
+[`poretsky`'s repository][fork] was also helpful in that, namely to
+update the manual.
+
+[patch]: https://www.rockbox.org/tracker/?getfile=23862
+[task]: https://www.rockbox.org/tracker/task/11619
+[fork]: https://github.com/poretsky/rockbox/commit/0eb3209b071266772d4089e7f68a9f1ff8963999
+---
+ apps/playlist.c                  | 15 ++++++++++++---
+ apps/root_menu.c                 |  4 ++++
+ apps/settings.h                  |  5 +++++
+ apps/settings_list.c             |  4 ++++
+ apps/settings_list.h             |  2 +-
+ manual/rockbox_interface/wps.tex |  4 ++--
+ 6 files changed, 28 insertions(+), 6 deletions(-)
+
+diff --git a/apps/playlist.c b/apps/playlist.c
+index 0b5662b47c..c6369feef2 100644
+--- a/apps/playlist.c
++++ b/apps/playlist.c
+@@ -2810,9 +2810,14 @@ int playlist_update_resume_info(const struct mp3entry* id3)
+ 
+     if (id3)
+     {
+-        if (global_status.resume_index  != playlist->index ||
+-            global_status.resume_elapsed != id3->elapsed ||
+-            global_status.resume_offset != id3->offset)
++        if (global_status.resume_index  != playlist->index
++            || global_status.resume_elapsed != id3->elapsed
++            || global_status.resume_offset != id3->offset
++#if CONFIG_CODEC == SWCODEC
++            || global_status.resume_pitch != sound_get_pitch()
++            || global_status.resume_speed != dsp_get_timestretch()
++#endif
++           )
+         {
+             unsigned int crc = playlist_get_filename_crc32(playlist,
+                                                            playlist->index);
+@@ -2820,6 +2825,10 @@ int playlist_update_resume_info(const struct mp3entry* id3)
+             global_status.resume_crc32 = crc;
+             global_status.resume_elapsed = id3->elapsed;
+             global_status.resume_offset = id3->offset;
++#if CONFIG_CODEC == SWCODEC
++            global_status.resume_pitch = sound_get_pitch();
++            global_status.resume_speed = dsp_get_timestretch();
++#endif
+             status_save();
+         }
+     }
+diff --git a/apps/root_menu.c b/apps/root_menu.c
+index 584328bd4b..726de8a696 100644
+--- a/apps/root_menu.c
++++ b/apps/root_menu.c
+@@ -318,6 +318,10 @@ static int wpsscrn(void* param)
+                (unsigned long)global_status.resume_offset);
+         if (playlist_resume() != -1)
+         {
++#if CONFIG_CODEC == SWCODEC
++            sound_set_pitch(global_status.resume_pitch);
++            dsp_set_timestretch(global_status.resume_speed);
++#endif
+             playlist_resume_track(global_status.resume_index,
+                 global_status.resume_crc32,
+                 global_status.resume_elapsed,
+diff --git a/apps/settings.h b/apps/settings.h
+index b72eec6f8b..6cf16fed27 100644
+--- a/apps/settings.h
++++ b/apps/settings.h
+@@ -278,6 +278,11 @@ struct system_status
+     uint32_t resume_crc32; /* crc32 of the name of the file */
+     uint32_t resume_elapsed; /* elapsed time in last file */
+     uint32_t resume_offset; /* byte offset in mp3 file */
++#if CONFIG_CODEC == SWCODEC
++    int resume_pitch;
++    int resume_speed;
++#endif
++
+     int runtime;       /* current runtime since last charge */
+     int topruntime;    /* top known runtime */
+ #ifdef HAVE_DIRCACHE
+diff --git a/apps/settings_list.c b/apps/settings_list.c
+index bc03672aeb..abd0a87adc 100644
+--- a/apps/settings_list.c
++++ b/apps/settings_list.c
+@@ -891,6 +891,10 @@ const struct settings_list settings[] = {
+     SYSTEM_SETTING(NVRAM(4), resume_crc32, -1),
+     SYSTEM_SETTING(NVRAM(4), resume_elapsed, -1),
+     SYSTEM_SETTING(NVRAM(4), resume_offset, -1),
++#if CONFIG_CODEC == SWCODEC
++    SYSTEM_SETTING(NVRAM(4), resume_pitch, -1),
++    SYSTEM_SETTING(NVRAM(4), resume_speed, -1),
++#endif
+     CHOICE_SETTING(0, repeat_mode, LANG_REPEAT, REPEAT_OFF, "repeat",
+                    "off,all,one,shuffle"
+ #ifdef AB_REPEAT_ENABLE
+diff --git a/apps/settings_list.h b/apps/settings_list.h
+index 7f0ae6484f..d668853fb6 100644
+--- a/apps/settings_list.h
++++ b/apps/settings_list.h
+@@ -143,7 +143,7 @@ struct custom_setting {
+ 
+ #define F_NVRAM_BYTES_MASK     0xE0000 /*0-4 bytes can be stored */
+ #define F_NVRAM_MASK_SHIFT     17
+-#define NVRAM_CONFIG_VERSION   8
++#define NVRAM_CONFIG_VERSION   9
+ /* Above define should be bumped if
+ - a new NVRAM setting is added between 2 other NVRAM settings
+ - number of bytes for a NVRAM setting is changed
+diff --git a/manual/rockbox_interface/wps.tex b/manual/rockbox_interface/wps.tex
+index c82a9cb9f4..ac50aac321 100644
+--- a/manual/rockbox_interface/wps.tex
++++ b/manual/rockbox_interface/wps.tex
+@@ -319,8 +319,8 @@ This may even be the whole track.
+   }
+   
+   The value of the \opt{swcodec}{rate, pitch and speed}\nopt{swcodec}{rate}
+-  is not persistent, i.e. after the \dap\ is turned on it will
+-  always be set to 100\%.  \opt{swcodec}{ However, the rate, pitch and speed
++  is persistent, i.e. it is saved and restored after the \dap\ is turned on.
++  \opt{swcodec}{ Moreover, the rate, pitch and speed
+   information will be stored in any bookmarks you may create
+   (see \reference{ref:Bookmarkconfigactual}) and will be restored upon
+   playing back those bookmarks.}
+-- 
+2.48.0
+
