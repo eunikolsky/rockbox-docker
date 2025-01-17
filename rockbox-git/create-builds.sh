@@ -1,4 +1,6 @@
 #!/bin/bash
+set -eu
+
 cd /tmp
 mkdir -p /usr/src/rockbox/artifacts
 

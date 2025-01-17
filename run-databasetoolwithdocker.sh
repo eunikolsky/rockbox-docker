@@ -1,4 +1,6 @@
 #!/bin/bash
+set -eu
+
 if [ $# -eq 0 ]; then
  echo "Argument should be the path to your DAP root folder"
  exit 1
