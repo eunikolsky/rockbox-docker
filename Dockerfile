@@ -1,7 +1,7 @@
-FROM ubuntu:22.04
+FROM ubuntu:14.04.1
 
 # Install required tools
-RUN apt-get update -y && apt-get install -y build-essential libsdl1.2-dev libsdl2-dev libsdl2-2.0-0 zip unzip git texinfo automake libtool libtool-bin autoconf flex bison curl wget libgmp-dev libmpfr-dev libgmp3-dev libmpc-dev && rm -rf /var/cache/apt/archives /var/lib/apt/lists
+RUN apt-get update -y && apt-get install -y build-essential zip unzip git texinfo automake libtool autoconf flex bison curl wget libgmp-dev libmpfr-dev libgmp3-dev libmpc-dev && rm -rf /var/cache/apt/archives /var/lib/apt/lists
 
 # Configure Rockbox dev environment
 COPY rockbox-git/rockbox/tools /tmp/rockboxtools
