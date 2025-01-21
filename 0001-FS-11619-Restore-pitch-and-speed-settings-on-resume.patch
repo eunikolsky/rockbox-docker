@@ -1,4 +1,4 @@
-From e7fdac25786417a28c90e3b1d77b32ccf0939162 Mon Sep 17 00:00:00 2001
+From dbb5df3a144d94c4a93069f992160a57557a8aa5 Mon Sep 17 00:00:00 2001
 From: Eugene <e@egeek.me>
 Date: Fri, 17 Jan 2025 17:42:46 +0200
 Subject: [PATCH] FS#11619 - Restore pitch and speed settings on resume
@@ -10,17 +10,26 @@ manually, and commit 0eb3209b071266772d4089e7f68a9f1ff8963999 in the
 [`poretsky`'s repository][fork] was also helpful in that, namely to
 update the manual.
 
+Note that I also increased the `NVRAM_BLOCK_SIZE` by 6 bytes to 50 bytes
+total, which is not in the original patches. All the `NVRAM(x)` settings
+in `apps/settings_list.c` are enabled for Sansa Clip+ and they added up
+to 34 bytes. The `nvram.bin` filesize was 44 bytes, where 8 bytes were
+metadata, so there were only 36 bytes for settings. This was fine before
+adding two more 32-bit ints, so the last settings weren't stored. It's
+probably not a big deal, but it's trivial to fix this.
+
 [patch]: https://www.rockbox.org/tracker/?getfile=23862
 [task]: https://www.rockbox.org/tracker/task/11619
 [fork]: https://github.com/poretsky/rockbox/commit/0eb3209b071266772d4089e7f68a9f1ff8963999
 ---
  apps/playlist.c                  | 15 ++++++++++++---
  apps/root_menu.c                 |  4 ++++
+ apps/settings.c                  |  2 +-
  apps/settings.h                  |  5 +++++
  apps/settings_list.c             |  4 ++++
  apps/settings_list.h             |  2 +-
  manual/rockbox_interface/wps.tex |  4 ++--
- 6 files changed, 28 insertions(+), 6 deletions(-)
+ 7 files changed, 29 insertions(+), 7 deletions(-)
 
 diff --git a/apps/playlist.c b/apps/playlist.c
 index 0b5662b47c..c6369feef2 100644
@@ -70,6 +79,19 @@ index 584328bd4b..726de8a696 100644
              playlist_resume_track(global_status.resume_index,
                  global_status.resume_crc32,
                  global_status.resume_elapsed,
+diff --git a/apps/settings.c b/apps/settings.c
+index 2d38c4a5ef..5dc7ae9e30 100644
+--- a/apps/settings.c
++++ b/apps/settings.c
+@@ -89,7 +89,7 @@ struct system_status global_status;
+ #include "pcm_sampr.h"
+ #endif /* CONFIG_CODEC == SWCODEC */
+ 
+-#define NVRAM_BLOCK_SIZE 44
++#define NVRAM_BLOCK_SIZE 50
+ 
+ #ifdef HAVE_LCD_BITMAP
+ #define MAX_LINES 10
 diff --git a/apps/settings.h b/apps/settings.h
 index b72eec6f8b..6cf16fed27 100644
 --- a/apps/settings.h
@@ -130,5 +152,5 @@ index c82a9cb9f4..ac50aac321 100644
    (see \reference{ref:Bookmarkconfigactual}) and will be restored upon
    playing back those bookmarks.}
 -- 
-2.48.0
+2.48.1
 
